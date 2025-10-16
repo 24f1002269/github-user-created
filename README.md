@@ -1,3 +1,2 @@
-# github-user-created
-
-Generated application for github-user-created
+bash
+    git clone https://github.com/24f1002269/github-user-created.git
