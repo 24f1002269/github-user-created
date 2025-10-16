@@ -1,147 +1,121 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GitHub User Creation Date</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>GitHub User Creation Date Lookup</title>
     <!-- Bootstrap CSS CDN -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9O9FeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
     <style>
         body {
+            padding-top: 50px;
             background-color: #f8f9fa;
         }
         .container {
             max-width: 600px;
-            margin-top: 50px;
-            padding: 30px;
-            background-color: #ffffff;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
-        #github-created-at, #github-account-age {
+        .card {
+            box-shadow: 0 4px 8px rgba(0,0,0,.05);
+            border: none;
+        }
+        #github-created-at {
+            font-size: 1.2em;
             font-weight: bold;
-            color: #007bff; /* Keep primary color for both values */
-            margin-top: 5px; /* Adjust spacing for better visual flow */
+            margin-top: 10px;
         }
-        .alert-danger {
+        .alert {
             margin-top: 15px;
-        }
-        /* Visually hidden for screen readers only */
-        .visually-hidden {
-            position: absolute !important;
-            width: 1px !important;
-            height: 1px !important;
-            padding: 0 !important;
-            margin: -1px !important;
-            overflow: hidden !important;
-            clip: rect(0,0,0,0) !important;
-            white-space: nowrap !important;
-            border: 0 !important;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1 class="mb-4 text-center">GitHub User Creation Date Lookup</h1>
-        <!-- Form ID must match 'github-user-${seed}' - using 'form' as seed -->
-        <form id="github-user-form">
-            <div class="mb-3">
-                <label for="usernameInput" class="form-label">GitHub Username:</label>
-                <input type="text" class="form-control" id="usernameInput" placeholder="e.g., octocat" required>
+        <div class="card p-4">
+            <h1 class="mb-4 text-center">GitHub User Creation Date Lookup</h1>
+
+            <form id="github-user-lookup" class="mb-4">
+                <div class="mb-3">
+                    <label for="username-input" class="form-label">GitHub Username:</label>
+                    <input type="text" class="form-control" id="username-input" placeholder="e.g., octocat" required>
+                </div>
+                <button type="submit" class="btn btn-primary w-100">Lookup</button>
+            </form>
+
+            <div id="message-area" class="alert d-none" role="alert"></div>
+
+            <div class="mt-3">
+                <p class="mb-0 text-muted">Account Created At:</p>
+                <div id="github-created-at" class="text-muted">Enter a username to see the creation date.</div>
             </div>
-            <button type="submit" class="btn btn-primary w-100">Get Creation Date</button>
-        </form>
-        <div id="result-container" class="mt-4 text-center">
-            <p class="mb-0">Account Created At:</p>
-            <!-- Element ID must match '#github-created-at' -->
-            <p id="github-created-at" class="fs-4 text-primary"></p>
-            <p class="mb-0">Account Age:</p>
-            <!-- New element for account age -->
-            <p id="github-account-age" class="fs-4 text-primary"></p>
         </div>
-        <div id="error-message" class="alert alert-danger d-none" role="alert">
-            <!-- Error messages will be displayed here -->
-        </div>
-        <!-- Aria-live alert for status updates -->
-        <div id="github-status" class="visually-hidden" aria-live="polite"></div>
     </div>
 
-    <!-- Bootstrap JS CDN (bundle includes Popper) -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <!-- Bootstrap JS CDN (optional for this app, but good practice) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+
     <script>
-        const githubUserForm = document.getElementById('github-user-form');
-        const usernameInput = document.getElementById('usernameInput');
+        const form = document.getElementById('github-user-lookup');
+        const usernameInput = document.getElementById('username-input');
+        const messageArea = document.getElementById('message-area');
         const githubCreatedAt = document.getElementById('github-created-at');
-        const githubAccountAge = document.getElementById('github-account-age');
-        const errorMessageDiv = document.getElementById('error-message');
-        const githubStatus = document.getElementById('github-status');
 
-        // Load cached username from localStorage on page load
-        document.addEventListener('DOMContentLoaded', () => {
-            const cachedUsername = localStorage.getItem('github-user-form');
-            if (cachedUsername) {
-                usernameInput.value = cachedUsername;
-            }
-        });
-
-        githubUserForm.addEventListener('submit', async (event) => {
+        form.addEventListener('submit', async (event) => {
             event.preventDefault(); // Prevent default form submission
 
-            // Clear previous results and error messages
-            githubCreatedAt.textContent = '';
-            githubAccountAge.textContent = '';
-            errorMessageDiv.classList.add('d-none');
-            githubStatus.textContent = ''; // Clear status message
-
             const username = usernameInput.value.trim();
+            clearMessages();
+            githubCreatedAt.textContent = 'Fetching data...';
+            githubCreatedAt.classList.remove('text-primary', 'text-danger');
+            githubCreatedAt.classList.add('text-muted');
 
             if (!username) {
-                errorMessageDiv.textContent = 'Please enter a GitHub username.';
-                errorMessageDiv.classList.remove('d-none');
-                githubStatus.textContent = 'Error: Please enter a GitHub username.'; // Announce error
+                showMessage('Please enter a GitHub username.', 'alert-warning');
+                githubCreatedAt.textContent = 'Enter a username to see the creation date.';
                 return;
             }
 
-            githubStatus.textContent = 'Fetching GitHub user data...'; // Announce lookup start
-
             try {
-                // Fetch user data from GitHub API
                 const response = await fetch(`https://api.github.com/users/${username}`);
-
-                if (!response.ok) {
-                    if (response.status === 404) {
-                        throw new Error(`GitHub user "${username}" not found.`);
-                    } else {
-                        throw new Error(`API Error: ${response.status} ${response.statusText}`);
-                    }
-                }
-
                 const data = await response.json();
-                const createdAt = new Date(data.created_at);
 
-                // Format date to YYYY-MM-DD UTC
-                // toISOString() returns in UTC, slice(0, 10) gets YYYY-MM-DD
-                const formattedDate = createdAt.toISOString().slice(0, 10);
-                githubCreatedAt.textContent = formattedDate;
-
-                // Calculate account age in whole years
-                const now = new Date();
-                const diffTime = now.getTime() - createdAt.getTime();
-                // Using 365.25 days per year to account for leap years on average
-                const diffYears = Math.floor(diffTime / (1000 * 60 * 60 * 24 * 365.25));
-                githubAccountAge.textContent = `${diffYears} years`;
-
-                // Cache the successful username in localStorage
-                localStorage.setItem('github-user-form', username);
-
-                githubStatus.textContent = 'GitHub user data fetched successfully.'; // Announce lookup success
-
+                if (response.ok) {
+                    const createdAtDate = new Date(data.created_at);
+                    // Format to YYYY-MM-DD UTC
+                    const formattedDate = createdAtDate.toISOString().split('T')[0];
+                    githubCreatedAt.textContent = formattedDate + ' UTC';
+                    githubCreatedAt.classList.remove('text-muted');
+                    githubCreatedAt.classList.add('text-primary'); // Make it stand out
+                } else {
+                    if (response.status === 404) {
+                        showMessage(`GitHub user "${username}" not found.`, 'alert-danger');
+                    } else {
+                        showMessage(`Error: ${data.message || 'Could not fetch data.'}`, 'alert-danger');
+                    }
+                    githubCreatedAt.textContent = 'Error fetching data.';
+                    githubCreatedAt.classList.remove('text-primary');
+                    githubCreatedAt.classList.add('text-danger'); // Indicate error visually
+                }
             } catch (error) {
-                errorMessageDiv.textContent = `Failed to fetch creation date: ${error.message}`;
-                errorMessageDiv.classList.remove('d-none');
-                githubStatus.textContent = `Lookup failed: ${error.message}`; // Announce lookup failure
+                showMessage('Network error or API request failed. Please try again.', 'alert-danger');
+                githubCreatedAt.textContent = 'Error fetching data.';
+                githubCreatedAt.classList.remove('text-primary');
+                githubCreatedAt.classList.add('text-danger'); // Indicate error visually
+                console.error('Fetch error:', error);
             }
         });
+
+        function showMessage(message, type) {
+            messageArea.textContent = message;
+            messageArea.className = `alert ${type}`; // Reset classes and add new type
+            messageArea.classList.remove('d-none');
+        }
+
+        function clearMessages() {
+            messageArea.textContent = '';
+            messageArea.classList.add('d-none');
+            // Ensure any previous alert type classes are removed
+            messageArea.classList.remove('alert-success', 'alert-info', 'alert-warning', 'alert-danger');
+        }
     </script>
 </body>
 </html>
